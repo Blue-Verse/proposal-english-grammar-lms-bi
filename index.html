@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="영어 문법 학습 LMS 데이터 시각화 및 관리자 기능 고도화 — 프로젝트 제안서" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/variable/woff2/SUIT-Variable.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['SUIT Variable', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              600: '#0284c7',
+              700: '#0369a1'
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 30px -18px rgba(15, 23, 42, 0.35)'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; font-size: 16px; }
+    body {
+      font-family: 'SUIT Variable', sans-serif;
+      font-size: 1rem;
+      background-image:
+        radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.08), transparent 42%),
+        radial-gradient(circle at 88% 82%, rgba(2, 132, 199, 0.06), transparent 48%);
+    }
+    .doc-content h1, .doc-content h2, .doc-content h3, .doc-content h4 {
+      color: rgb(15 23 42); font-weight: 700; letter-spacing: -0.01em;
+      line-height: 1.3; margin-top: 1.6em; margin-bottom: 0.7em;
+    }
+    .doc-content h1 { font-size: 2rem; margin-top: 0.2em; }
+    .doc-content h2 { font-size: 1.4rem; }
+    .doc-content h3 { font-size: 1.15rem; }
+    .doc-content p, .doc-content li {
+      color: rgb(51 65 85); line-height: 1.8; font-size: 1rem;
+    }
+    .doc-content p, .doc-content ul, .doc-content ol,
+    .doc-content table, .doc-content pre, .doc-content blockquote {
+      margin-bottom: 1rem;
+    }
+    .doc-content ul, .doc-content ol { padding-left: 1.2rem; }
+    .doc-content ul { list-style: disc; }
+    .doc-content ol { list-style: decimal; }
+    .doc-content table {
+      width: 100%; border-collapse: collapse;
+      border: 1px solid rgb(226 232 240); border-radius: 0.75rem;
+      overflow: hidden; font-size: 1rem;
+    }
+    .doc-content th, .doc-content td {
+      border: 1px solid rgb(226 232 240); padding: 0.7rem 0.8rem;
+      text-align: left; vertical-align: top;
+    }
+    .doc-content th {
+      background: rgb(248 250 252); color: rgb(30 41 59); font-weight: 600;
+    }
+    .doc-content pre, .doc-content code {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+    .doc-content pre {
+      background: rgb(15 23 42); color: rgb(226 232 240);
+      padding: 1rem; border-radius: 0.75rem; overflow-x: auto;
+      font-size: 1rem; line-height: 1.65;
+    }
+    .doc-content p code, .doc-content li code,
+    .doc-content td code, .doc-content th code {
+      background: rgb(241 245 249); color: rgb(15 23 42);
+      border: 1px solid rgb(226 232 240); border-radius: 0.4rem;
+      padding: 0.08rem 0.4rem; font-size: 1em;
+    }
+    .doc-content blockquote {
+      border-left: 3px solid rgb(14 165 233); padding-left: 0.85rem;
+      color: rgb(71 85 105); background: rgb(240 249 255);
+      border-radius: 0.5rem; padding-top: 0.55rem; padding-bottom: 0.55rem;
+    }
+    .text-xs { font-size: 1rem !important; }
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: ''; position: absolute; left: 0.6rem; top: 0.25rem; bottom: 0.25rem;
+      width: 2px; background: rgb(186 230 253);
+    }
+    .timeline-item { position: relative; margin-bottom: 1.75rem; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -1.65rem; top: 0.35rem;
+      width: 0.75rem; height: 0.75rem; border-radius: 50%;
+      background: rgb(2 132 199); border: 3px solid rgb(224 242 254);
+    }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+    #sidebar-backdrop { display: none; }
+    #sidebar-backdrop.open { display: block; }
+    @media (max-width: 1023px) {
+      #sidebar { transform: translateX(-100%); transition: transform 0.2s ease; position: fixed; top: 0; left: 0; z-index: 40; height: 100vh; width: 80vw; max-width: 320px; }
+      #sidebar.open { transform: translateX(0); }
+    }
+  </style>
+  <title>영어 문법 학습 LMS 데이터 시각화 및 관리자 기능 고도화 — 프로젝트 제안서</title>
+</head>
+<body class="text-slate-800 font-sans antialiased">
+  <div class="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
+
+    <header class="mb-6 rounded-2xl border border-slate-200/70 bg-white/85 px-5 py-3 shadow-soft backdrop-blur">
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="sidebar-toggle" class="lg:hidden inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:border-sky-300 hover:text-sky-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          메뉴
+        </button>
+        <a href="#home" class="inline-flex items-center shrink-0 text-sm font-bold tracking-tight text-slate-800">
+          프로젝트 제안서
+        </a>
+        <div class="hidden sm:block ml-auto text-right">
+          <p class="text-sm font-semibold tracking-[0.04em] text-sky-700/90">영어 문법 학습 LMS 데이터 시각화 및 관리자 기능 고도화</p>
+          <p class="text-xs text-slate-400">프로젝트 제안서</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+
+      <div id="sidebar-backdrop" class="fixed inset-0 bg-black/30 z-30 lg:hidden" onclick="closeSidebar()"></div>
+      <aside id="sidebar" class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-soft backdrop-blur lg:sticky lg:top-6 lg:h-[calc(100vh-4rem)] lg:overflow-auto">
+        <nav id="nav" class="space-y-1">
+          <a href="#home" data-page="home" class="nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700">홈</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">제안서</p>
+          <a href="#overview" data-page="overview" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">프로젝트 소개</a>
+          <a href="#estimate" data-page="estimate" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">견적서</a>
+          <a href="#manday" data-page="manday" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">공수계산서</a>
+          <a href="#prd" data-page="prd" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">PRD</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">일정 & 경험</p>
+          <a href="#timeline" data-page="timeline" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">일정 제안</a>
+          <a href="#portfolio" data-page="portfolio" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">유사 프로젝트 경험</a>
+        </nav>
+      </aside>
+
+      <main class="min-w-0">
+
+        <div id="page-home" class="page-section active space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-soft backdrop-blur md:p-8">
+            <p class="mb-2 text-xs font-semibold tracking-[0.2em] text-sky-700/80">프로젝트 제안서</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">영어 문법 학습 LMS 데이터 시각화 및 관리자 기능 고도화</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600 md:text-base">운영 중인 영어 문법 학습 LMS의 진단 테스트 결과를 외부 BI/시각화 솔루션과 연동하고, 관리자가 학생별 일일 평가를 한눈에 확인하도록 어드민을 고도화합니다. 레거시 Java/Thymeleaf 시스템 분석부터 외부 연동 규격 설계, 통합 대시보드 구축까지 30일 안에 마감합니다.</p>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">4,500,000원 (VAT 별도)</span>
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">30일</span>
+              <span class="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-amber-700">웹 · 대시보드</span>
+              <a href="https://www.wishket.com/project/155198/" target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-sm font-medium text-slate-500 transition hover:border-sky-300 hover:text-sky-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                원본 공고
+              </a>
+            </div>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <a href="#overview" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">소개</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">프로젝트 소개</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">프로젝트 분석, 핵심 요구사항 정리, 제안 포인트</p>
+            </a>
+            <a href="#estimate" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">비용</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">견적서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">항목별 비용 산출 근거 및 상세 견적</p>
+            </a>
+            <a href="#manday" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">공수</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">공수계산서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능별 개발 공수(man-day) 산출 내역</p>
+            </a>
+            <a href="#prd" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">기획</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">PRD</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능 요구사항 정의서, 사용자 스토리, 기술 제약</p>
+            </a>
+            <a href="#timeline" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">일정</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">일정 제안</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">단계별 마일스톤 및 산출물 일정표</p>
+            </a>
+            <a href="#portfolio" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">경험</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">유사 프로젝트 경험</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">유사 프로젝트 수행 경험 및 기술 스택</p>
+            </a>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">13+</p>
+              <p class="mt-1 text-sm text-slate-500">완료 프로젝트</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">200+</p>
+              <p class="mt-1 text-sm text-slate-500">대시보드 API 경험</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">50+</p>
+              <p class="mt-1 text-sm text-slate-500">관리자 화면 구축</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">30일</p>
+              <p class="mt-1 text-sm text-slate-500">제안 납품 기간</p>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">각 메뉴를 클릭하시면 상세 내용을 확인하실 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div id="page-overview" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>프로젝트 소개</h1>
+              <blockquote>운영 중인 영어 문법 학습 LMS의 진단 테스트 결과를 외부 BI/시각화 솔루션과 연동하고, 관리자가 학생별 일일 평가를 한눈에 확인하도록 어드민을 고도화합니다.</blockquote>
+
+              <h2>프로젝트 개요</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td><a href="https://www.wishket.com/project/155198/" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline decoration-sky-300 hover:decoration-sky-500">영어 문법 학습 LMS 데이터 시각화 및 관리자 기능 고도화</a></td></tr>
+                <tr><td>카테고리</td><td>웹 · CRM · 통계/대시보드 (운영 중 서비스 고도화)</td></tr>
+                <tr><td>제안 금액</td><td>4,500,000원 (VAT 별도)</td></tr>
+                <tr><td>제안 기간</td><td>30일</td></tr>
+                <tr><td>핵심 기술</td><td>Java · Thymeleaf · MySQL · REST API · JSON · BI/로우코드 시각화 툴 연동</td></tr>
+              </table>
+
+              <h2>핵심 요구사항 분석</h2>
+              <ul>
+                <li>115문제 진단 테스트 결과 데이터 취합·가공 및 외부 시각화 서비스 전송 API/JSON 규격 개발</li>
+                <li>외부 BI/로우코드 솔루션 내 도표 및 상세 분석 화면 구축</li>
+                <li>'뉴런 문법시험' 학생별 일일 통과 여부 통합 조회 화면 + 관리 기능 신규 개발</li>
+                <li>요구사항 정의서, 연동 규격서 등 기획 산출물 제공</li>
+                <li>운영 중인 레거시 Java/Thymeleaf 시스템 코드 분석 및 영향 범위 최소화 개발</li>
+                <li>외부 시각화 서비스 연동 가이드 및 화면 세팅 내역서 작성</li>
+              </ul>
+
+              <h2>제안 포인트</h2>
+              <ol>
+                <li><strong>레거시 분석 우선 접근</strong>: 운영 중인 LMS 영향을 최소화하기 위해 첫 주는 기존 DB 스키마와 데이터 흐름을 정밀 분석합니다. 기존 테이블 구조를 변경하지 않고 신규 집계 테이블/뷰를 추가하는 방식으로 비파괴적 고도화를 진행합니다.</li>
+                <li><strong>BI 솔루션 독립적인 표준 연동 규격</strong>: 외부 시각화 서비스를 Metabase, Looker Studio, Apache Superset 등 어느 것을 선택하더라도 재사용 가능한 표준 JSON 스키마와 REST API 인터페이스로 설계합니다. 향후 BI 솔루션 교체 시에도 LMS 측 수정 없이 대응 가능합니다.</li>
+                <li><strong>어드민 UX 일관성 유지</strong>: 신규 통합 조회·관리 화면을 기존 Thymeleaf 템플릿 패턴과 동일하게 구성하여 관리자가 별도 학습 비용 없이 즉시 사용할 수 있도록 합니다.</li>
+                <li><strong>1순위 산출물 완성도에 맞춘 마일스톤 운영</strong>: 매주 검수 가능한 산출물 단위로 4개 마일스톤(기획 문서, 외부 연동 데모, 어드민+BI 세팅, 최종 인도)을 분할하여 진행 상황을 실시간 가시화합니다.</li>
+                <li><strong>장기 파트너십을 고려한 문서화</strong>: 우대 사항 중 '장기적 파트너십'을 반영하여 인수인계 가능한 수준의 연동 규격서·운영 가이드를 제공합니다.</li>
+              </ol>
+
+              <h2>사용 기술 및 툴</h2>
+              <h3>개발 기술</h3>
+              <div class="flex flex-wrap gap-2 not-prose mb-4">
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Java</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Thymeleaf</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Spring MVC</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">MySQL</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">REST API</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">JSON Schema</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Metabase / Looker Studio / Superset</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Chart.js / ApexCharts</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Docker</span>
+              </div>
+              <h3>협업 및 커뮤니케이션</h3>
+              <div class="flex flex-wrap gap-2 not-prose">
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Slack / 카카오톡</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Zoom / Google Meet</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Notion / Google Docs</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">GitHub Issues</span>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div id="page-estimate" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>견적서</h1>
+              <blockquote>본 견적서는 프로젝트 요구사항 분석을 기반으로 산출되었습니다.</blockquote>
+
+              <h2>견적 요약</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td>영어 문법 학습 LMS 데이터 시각화 및 관리자 기능 고도화</td></tr>
+                <tr><td>제안 금액</td><td><strong>4,500,000원 (VAT 별도)</strong></td></tr>
+                <tr><td>제안 기간</td><td>30일</td></tr>
+                <tr><td>견적 유효기간</td><td>제안일로부터 30일</td></tr>
+              </table>
+
+              <h2>상세 견적 내역</h2>
+              <table>
+                <thead>
+                  <tr><th>구분</th><th>항목</th><th>수량</th><th>단가</th><th>금액</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>기획</td><td>레거시 분석, 요구사항 정의서, 연동 규격서, ERD 변경안</td><td>1식</td><td>-</td><td>800,000원</td></tr>
+                  <tr><td>백엔드</td><td>진단 결과 취합·가공 로직, 외부 연동 API, 일일 통과 집계</td><td>1식</td><td>-</td><td>1,600,000원</td></tr>
+                  <tr><td>프론트엔드</td><td>관리자 통합 조회/관리 화면 (Thymeleaf)</td><td>1식</td><td>-</td><td>1,000,000원</td></tr>
+                  <tr><td>외부 시각화 연동</td><td>BI 툴 데이터소스 연결, 도표/분석 화면 세팅, 가이드 작성</td><td>1식</td><td>-</td><td>700,000원</td></tr>
+                  <tr><td>QA/배포</td><td>통합 테스트, 운영 배포, 1개월 하자 보수</td><td>1식</td><td>-</td><td>400,000원</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><th colspan="4">합계 (VAT 별도)</th><th>4,500,000원</th></tr>
+                </tfoot>
+              </table>
+
+              <h2>산정 근거</h2>
+              <ul>
+                <li>운영 중 시스템 분석 시간을 최우선 확보 (전체 공수의 약 20%)</li>
+                <li>외부 시각화 솔루션은 클라이언트가 자유롭게 선택할 수 있도록 표준 JSON 인터페이스로 설계</li>
+                <li>학생별 일일 통과 집계 SQL은 추후 학생 수 증가에도 대응 가능한 인덱스/뷰 설계 포함</li>
+                <li>1개월 무상 하자 보수 포함 — 운영 중 발견되는 데이터 정합성 이슈 즉시 대응</li>
+                <li>장기 파트너십을 고려한 문서화 수준 (인수인계 가능한 연동 규격서·운영 가이드 포함)</li>
+              </ul>
+
+              <h2>포함 사항</h2>
+              <ul>
+                <li>소스 코드 전체 이관</li>
+                <li>기획 문서 (요구사항 정의서, 연동 규격서, ERD 변경안)</li>
+                <li>외부 시각화 서비스 연동 가이드 및 화면 세팅 내역서</li>
+                <li>API 명세서, DB 변경 마이그레이션 스크립트, 배포 가이드</li>
+                <li>1개월 무상 하자 보수</li>
+                <li>운영 배포 환경 세팅 (1회)</li>
+              </ul>
+
+              <h2>불포함 사항</h2>
+              <ul>
+                <li>서버 호스팅 비용 (운영 인프라는 클라이언트 환경 활용)</li>
+                <li>외부 BI 솔루션 자체 라이선스/사용료 (Metabase OSS·Looker Studio 무료 플랜 기준 권장)</li>
+                <li>도메인 및 SSL 인증서 구매 비용</li>
+                <li>하자 보수 기간 이후 유지보수 (별도 협의)</li>
+                <li>학생 사용자 화면 신규 개발</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <div id="page-manday" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>공수계산서</h1>
+              <blockquote>기능별 개발 공수(Man-Day)를 산출하여 일정과 비용의 근거를 제시합니다.</blockquote>
+
+              <h2>공수 요약</h2>
+              <table>
+                <tr><th>구분</th><th>공수 (M/D)</th><th>비율</th></tr>
+                <tr><td>기획/설계</td><td>3 M/D</td><td>20%</td></tr>
+                <tr><td>백엔드</td><td>5 M/D</td><td>33%</td></tr>
+                <tr><td>프론트엔드 (어드민)</td><td>3 M/D</td><td>20%</td></tr>
+                <tr><td>외부 시각화 연동</td><td>2 M/D</td><td>14%</td></tr>
+                <tr><td>QA/배포</td><td>2 M/D</td><td>13%</td></tr>
+                <tr><th>합계</th><th>15 M/D</th><th>100%</th></tr>
+              </table>
+
+              <h2>기능별 상세 공수</h2>
+              <table>
+                <thead>
+                  <tr><th>기능</th><th>세부 작업</th><th>담당</th><th>공수 (M/D)</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td rowspan="3">기획/설계</td><td>레거시 시스템 분석, 요구사항 정의서</td><td>기획</td><td>1</td></tr>
+                  <tr><td>외부 연동 JSON 스키마 설계, ERD 변경안</td><td>기획</td><td>1</td></tr>
+                  <tr><td>어드민 화면 와이어프레임 (학생별 일일 통과 조회)</td><td>기획</td><td>1</td></tr>
+                  <tr><td rowspan="3">진단 결과 연동</td><td>115문제 응답 데이터 집계 쿼리·리포지토리</td><td>백엔드</td><td>1.5</td></tr>
+                  <tr><td>결과 가공·정규화 서비스 레이어 (영역별 정답률, 약점 분류)</td><td>백엔드</td><td>1</td></tr>
+                  <tr><td>외부 BI 전송 REST API + 토큰 인증</td><td>백엔드</td><td>1.5</td></tr>
+                  <tr><td>일일 통과 관리</td><td>뉴런 문법시험 학생별 통과 집계 API</td><td>백엔드</td><td>1</td></tr>
+                  <tr><td rowspan="3">어드민 화면</td><td>일일 통과 통합 조회 (날짜·반·학생 필터)</td><td>프론트엔드</td><td>1.5</td></tr>
+                  <tr><td>통과/미통과 일괄·개별 처리 기능</td><td>프론트엔드</td><td>1</td></tr>
+                  <tr><td>상세 결과 모달 + CSV 다운로드</td><td>프론트엔드</td><td>0.5</td></tr>
+                  <tr><td rowspan="2">BI 연동·세팅</td><td>BI 툴 데이터소스 등록, 인증 발급</td><td>백엔드</td><td>0.5</td></tr>
+                  <tr><td>도표·상세 분석 화면 세팅, 세팅 내역서 작성</td><td>기획+프론트</td><td>1.5</td></tr>
+                  <tr><td>QA/배포</td><td>통합 테스트, 시나리오 검증, 운영 배포</td><td>QA</td><td>2</td></tr>
+                </tbody>
+              </table>
+
+              <h2>산정 기준</h2>
+              <ul>
+                <li>1 M/D = 8시간 기준 (1인 1일 작업량)</li>
+                <li>주 5일 근무 기준, 달력 30일에 충분히 수렴</li>
+                <li>버퍼 10~15% 포함</li>
+                <li>유사 프로젝트 수행 경험 기반 효율적 개발 진행</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <div id="page-prd" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>PRD (Product Requirements Document)</h1>
+              <blockquote>프로젝트 요구사항을 정의하고 기능 범위를 명확히 합니다.</blockquote>
+
+              <h2>1. 프로젝트 배경 및 목적</h2>
+              <p>현재 운영 중인 영어 문법 학습 LMS는 학생들에게 115문제 진단 테스트 및 매일 진행되는 '뉴런 문법시험'을 제공하고 있습니다. 다음 두 가지 운영상 어려움이 존재합니다:</p>
+              <ul>
+                <li><strong>진단 결과 분석 한계</strong>: 텍스트·표 위주 결과로는 학생별 약점 영역을 직관적으로 파악하기 어려움</li>
+                <li><strong>일일 평가 관리 부담</strong>: 학생별 매일 통과 여부를 일일이 확인해야 하므로 관리자 운영 시간 과다 소요</li>
+              </ul>
+              <p>본 프로젝트는 외부 시각화 솔루션 연동과 관리자 통합 조회 화면 신규 개발로 두 문제를 동시에 해결합니다.</p>
+
+              <h2>2. 사용자 정의</h2>
+              <table>
+                <thead>
+                  <tr><th>사용자 유형</th><th>설명</th><th>주요 기능</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>관리자</td><td>LMS 운영 담당자</td><td>학생별 일일 통과 통합 조회, 진단 결과 시각화 확인, 통과 여부 수동 관리</td></tr>
+                  <tr><td>학생</td><td>LMS 수강생 (영향 범위 최소)</td><td>기존 학습/시험 기능 변경 없음</td></tr>
+                  <tr><td>BI 분석가 / 운영자</td><td>외부 시각화 솔루션 사용자</td><td>BI 툴에서 진단 결과 분석 화면 활용</td></tr>
+                </tbody>
+              </table>
+
+              <h2>3. 기능 요구사항</h2>
+              <h3>3.1 진단 테스트 결과 외부 연동</h3>
+              <ul>
+                <li><strong>[필수]</strong> 115문제 응답 데이터 집계 (학생별·문항별·영역별)</li>
+                <li><strong>[필수]</strong> 외부 시각화 서비스 전송용 REST API 제공 (JSON Schema 명세 포함)</li>
+                <li><strong>[필수]</strong> API 인증 (토큰 기반, 만료/갱신)</li>
+                <li><strong>[필수]</strong> 데이터 가공 정책 (백분율, 영역별 정답률, 약점 영역 자동 분류)</li>
+                <li><strong>[선택]</strong> 증분 전송 (전체 재전송 대신 변경분만 push)</li>
+              </ul>
+              <h3>3.2 외부 시각화 솔루션 화면 구축</h3>
+              <ul>
+                <li><strong>[필수]</strong> BI 툴 데이터소스 연결 (Metabase, Looker Studio, Apache Superset 중 클라이언트 선택)</li>
+                <li><strong>[필수]</strong> 학생별 진단 결과 도표 (영역별 정답률, 약점 영역 히트맵, 전체 분포 비교)</li>
+                <li><strong>[필수]</strong> 상세 분석 화면 (문항별 응답 분포, 시계열 추이)</li>
+                <li><strong>[필수]</strong> 화면 세팅 내역서 작성 (재구축·재설정 가능 수준)</li>
+              </ul>
+              <h3>3.3 관리자 대시보드 고도화</h3>
+              <ul>
+                <li><strong>[필수]</strong> '뉴런 문법시험' 학생별 일일 통과 통합 조회 화면 (날짜·반·학생 필터)</li>
+                <li><strong>[필수]</strong> 통과/미통과 일괄·개별 처리 기능</li>
+                <li><strong>[필수]</strong> CSV 다운로드 (일일·기간별 리포트)</li>
+                <li><strong>[선택]</strong> 미통과 학생 자동 알림 트리거 (이메일/SMS 훅)</li>
+              </ul>
+
+              <h2>4. 비기능 요구사항</h2>
+              <table>
+                <thead>
+                  <tr><th>항목</th><th>요구사항</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>성능</td><td>외부 BI 전송 API 응답 200ms 이내 (학생 500명 기준), 통합 조회 화면 1초 이내 렌더</td></tr>
+                  <tr><td>보안</td><td>HTTPS 강제, API 토큰 만료/갱신, SQL Injection 방어, 학생 개인정보 마스킹</td></tr>
+                  <tr><td>호환성</td><td>기존 Java/Thymeleaf 코드와 100% 호환, 신규 의존성 최소화</td></tr>
+                  <tr><td>확장성</td><td>BI 솔루션 교체 가능한 표준 JSON 스키마, 학생 수 1만 명까지 무리 없는 처리</td></tr>
+                  <tr><td>가용성</td><td>기존 LMS 운영 영향 없음 (무중단 배포)</td></tr>
+                </tbody>
+              </table>
+
+              <h2>5. 기술 제약사항</h2>
+              <ul>
+                <li><strong>기술 스택 고정</strong>: 기존 Java + Thymeleaf, MySQL 유지 (프레임워크 교체 불가)</li>
+                <li><strong>레거시 DB 스키마 보존</strong>: 기존 테이블 구조 변경 최소화, 신규 집계 테이블/뷰 추가 방식 우선</li>
+                <li><strong>운영 무중단</strong>: 운영 중인 LMS에 영향 없이 점진 배포</li>
+                <li><strong>외부 BI 도구 라이선스</strong>: 무료/오픈소스(Metabase OSS, Apache Superset, Looker Studio Free) 중 클라이언트 선택</li>
+              </ul>
+
+              <h2>6. 범위 외 사항 (Out of Scope)</h2>
+              <ul>
+                <li>학생 앱/사용자 화면 신규 개발</li>
+                <li>진단 테스트 문항 자체 변경/추가</li>
+                <li>LMS 인증/회원 시스템 리뉴얼</li>
+                <li>모바일 전용 반응형 (PC Web 한정)</li>
+                <li>BI 솔루션 자체 라이선스 비용 부담</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <div id="page-timeline" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>일정 제안</h1>
+              <blockquote>총 30일 기준 단계별 마일스톤 및 산출물을 제안합니다.</blockquote>
+
+              <h2>전체 일정 요약</h2>
+              <table>
+                <thead>
+                  <tr><th>단계</th><th>기간</th><th>주요 산출물</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Phase 1. 분석·기획</td><td>Day 1–7</td><td>레거시 분석 보고서, 요구사항 정의서, 연동 규격서, ERD 변경안</td></tr>
+                  <tr><td>Phase 2. 백엔드 개발</td><td>Day 8–17</td><td>집계 API, 외부 연동 API, 단위 테스트, API 명세서</td></tr>
+                  <tr><td>Phase 3. 어드민 + BI 연동</td><td>Day 18–25</td><td>관리자 통합 조회 화면, BI 도표/분석 화면, 화면 세팅 내역서</td></tr>
+                  <tr><td>Phase 4. QA·배포</td><td>Day 26–30</td><td>통합 테스트, 운영 배포, 산출물 최종 인도</td></tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <h2 class="mb-4 text-sm font-semibold tracking-[0.14em] text-slate-500">상세 타임라인</h2>
+            <div class="timeline">
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 1</p>
+                <h4 class="text-base font-semibold text-slate-900">분석 및 기획</h4>
+                <p class="mb-1 text-sm font-semibold text-amber-600">Day 1–7</p>
+                <p class="text-sm leading-7 text-slate-600">기존 LMS 소스 코드 정밀 분석, 진단 테스트·뉴런 문법시험 데이터 흐름 파악, 외부 연동 JSON 스키마 설계, 어드민 와이어프레임 작성</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 레거시 분석 보고서, 요구사항 정의서, 연동 규격서(JSON Schema), ERD 변경안</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 2</p>
+                <h4 class="text-base font-semibold text-slate-900">백엔드 개발 (집계 + 외부 연동)</h4>
+                <p class="mb-1 text-sm font-semibold text-amber-600">Day 8–17</p>
+                <p class="text-sm leading-7 text-slate-600">115문제 진단 결과 집계·가공 서비스 레이어, 외부 BI 전송 REST API + 토큰 인증, 뉴런 문법시험 학생별 통과 집계 API 개발, 단위 테스트 작성</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 집계 API, 외부 연동 API, API 명세서, 단위 테스트 코드</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 3</p>
+                <h4 class="text-base font-semibold text-slate-900">어드민 화면 + 외부 BI 세팅</h4>
+                <p class="mb-1 text-sm font-semibold text-amber-600">Day 18–25</p>
+                <p class="text-sm leading-7 text-slate-600">관리자 통합 조회·관리 화면 Thymeleaf 구현, 통과/미통과 처리·CSV 다운로드, BI 툴(Metabase 또는 클라이언트 선택) 데이터소스 등록, 도표·상세 분석 화면 세팅, 세팅 내역서 작성</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 어드민 화면, BI 도표·분석 화면, 외부 시각화 서비스 연동 가이드 및 화면 세팅 내역서</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 4</p>
+                <h4 class="text-base font-semibold text-slate-900">QA · 운영 배포 · 인도</h4>
+                <p class="mb-1 text-sm font-semibold text-amber-600">Day 26–30</p>
+                <p class="text-sm leading-7 text-slate-600">통합 시나리오 테스트, 운영 환경 무중단 배포, 운영 가이드·인수인계 문서 작성, 소스 코드 및 산출물 최종 인도</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 운영 배포 완료, 소스 코드 원본, 운영/배포 가이드, 1개월 무상 하자 보수 시작</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h2>마일스톤 체크포인트</h2>
+              <table>
+                <thead>
+                  <tr><th>마일스톤</th><th>시점</th><th>검수 기준</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>M1: 기획 문서 승인</td><td>Day 7</td><td>요구사항 정의서 + 연동 규격서 클라이언트 승인</td></tr>
+                  <tr><td>M2: 외부 연동 API 데모</td><td>Day 17</td><td>샘플 BI 툴(Metabase)에서 학생 1명 진단 결과 도표 표시 확인</td></tr>
+                  <tr><td>M3: 어드민 + BI 세팅 완료</td><td>Day 25</td><td>학생 일일 통과 조회·관리 + BI 분석 화면 전체 동작 확인</td></tr>
+                  <tr><td>M4: 최종 인도</td><td>Day 30</td><td>운영 배포 완료, 소스 코드 인도, 가이드 문서 인도</td></tr>
+                </tbody>
+              </table>
+
+              <h2>커뮤니케이션 계획</h2>
+              <table>
+                <tr><th>항목</th><th>방식</th><th>주기</th></tr>
+                <tr><td>일일 진행 공유</td><td>Slack / 카카오톡</td><td>매일</td></tr>
+                <tr><td>주간 미팅</td><td>Zoom / Google Meet</td><td>주 1회</td></tr>
+                <tr><td>마일스톤 리뷰</td><td>화면 공유 + 문서</td><td>단계 완료 시</td></tr>
+                <tr><td>이슈 트래킹</td><td>GitHub Issues</td><td>상시</td></tr>
+              </table>
+            </article>
+          </div>
+        </div>
+
+        <div id="page-portfolio" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>유사 프로젝트 경험</h1>
+              <blockquote>본 프로젝트와 유사한 기능/기술 스택을 활용한 수행 경험을 소개합니다.</blockquote>
+            </article>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">13+</p>
+              <p class="mt-1 text-sm text-slate-500">완료 프로젝트</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">200+</p>
+              <p class="mt-1 text-sm text-slate-500">대시보드 API 경험</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">50+</p>
+              <p class="mt-1 text-sm text-slate-500">관리자 화면 구축</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">30일</p>
+              <p class="mt-1 text-sm text-slate-500">제안 납품 기간</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">B2B SaaS · 전자결재</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">EZ-Approve — 전자결재 SaaS 플랫폼</h3>
+              <p class="mt-1 text-sm text-slate-400">기업용 워크플로우 / 관리자 대시보드 · 약 9주 · 2026.01–2026.03</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>다단계 전자결재 엔진과 관리자 어드민(50+ 페이지, 120-150 API)을 풀스택으로 구축. 7개 사용자 역할의 RBAC, VICS 규제 보고, 토큰 기반 외부 셀프서비스 포탈까지 단독 수행.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>관리자 대시보드 50+ 페이지 (조회·통계·승인 워크플로우 관리)</li>
+                  <li>120-150개 API 엔드포인트, 34 엔티티, 6계층 보안</li>
+                  <li>외부 셀프서비스 포탈 토큰 인증 (본 프로젝트의 외부 BI 연동과 동일 구조)</li>
+                  <li>VICS 규제 보고서 외부 양식 출력</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>대규모 관리자 화면을 운영 안정성 우선으로 설계·구축한 경험. 본 프로젝트의 '학생별 일일 통과 통합 조회 + 관리' 화면 패턴과 직접 매칭됩니다. 토큰 기반 외부 시스템 데이터 연동 경험은 본 프로젝트의 외부 BI 전송 API와 동일한 패턴입니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">TypeScript</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">CASL (RBAC)</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Docker</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">핀테크 · 대시보드 · 외부 연동</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">Series-B — VC 펀드 관리 플랫폼</h3>
+              <p class="mt-1 text-sm text-slate-400">금융 SaaS / 200-300+ API 엔드포인트 · 14개월 · 2023.11–2024.12</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>VC 펀드 라이프사이클 관리 SaaS. GP/LP/스타트업 대시보드 50+ 페이지, AI 투자 보고서, VICS 규제 5종 양식 외부 연동, NICE KYC 외부 API 연동 등 200+ API와 데이터 시각화를 단독 수행.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>VC 펀드 대시보드 50+ 페이지, 80+ 엔티티</li>
+                  <li>AI 보고서 생성 (외부 ChatGPT API 연동, JSON 스키마 기반)</li>
+                  <li>VICS 규제 양식 5종 외부 데이터 연동</li>
+                  <li>NICE KYC 외부 API 통합, DLP·GeoIP 5계층 보안</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>표준 JSON 스키마를 통한 외부 시스템 연동 경험이 본 프로젝트의 외부 BI 솔루션 전송 규격 설계와 직접 매칭됩니다. 진단 결과를 영역별·시계열로 가공해 시각화 솔루션에 전달하는 패턴은 본 프로젝트의 펀드 KPI 시각화와 동일 구조입니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">REST API</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">JSON Schema</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">AWS</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">B2B SaaS · 데이터 분석</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">Harmony Link — 시니어 주간보호 관리 플랫폼</h3>
+              <p class="mt-1 text-sm text-slate-400">헬스케어 / 6 플랫폼 · 약 6개월 · 2025</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>케어 로그·투약·일일 평가 데이터를 멀티테넌트로 관리하고 AI 건강 분석 결과를 시각화. 133K+ LOC, 140+ API. 본 프로젝트의 '학생별 일일 평가 관리'와 가장 직접적으로 매칭되는 일일 운영 데이터 처리 경험.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>학생/시설 이용자별 일일 평가·통과 여부 통합 조회</li>
+                  <li>OpenAI 연동 AI 건강 분석 결과 시각화</li>
+                  <li>멀티테넌트 데이터 격리 + 외부 데이터 분석 연동</li>
+                  <li>전자서명, 보호자 알림 등 운영 관리 기능</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>'매일 진행되는 평가를 한눈에 통합 조회'하는 운영 관리자 UX 패턴이 본 프로젝트의 '뉴런 문법시험 학생별 일일 통과 통합 조회'와 직접 매칭됩니다. 외부 AI 분석 결과(JSON)를 받아 시각화하는 흐름도 동일합니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">OpenAI</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">AWS CDK</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Docker</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">프로젝트에 대해 더 자세한 논의를 원하시면 미팅을 신청해 주세요.</p>
+          </div>
+        </div>
+
+        <div id="page-nav" class="mt-6 flex items-center justify-between gap-4" style="display:none;">
+          <a id="nav-prev" href="#home"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <span>
+              <span class="block text-xs text-slate-400">이전</span>
+              <span id="nav-prev-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">홈</span>
+            </span>
+          </a>
+          <a id="nav-next" href="#overview"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white text-right ml-auto">
+            <span>
+              <span class="block text-xs text-slate-400">다음</span>
+              <span id="nav-next-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">프로젝트 소개</span>
+            </span>
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+      </main>
+    </div>
+
+    <footer class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-500">
+      &copy; 2026 &middot; 본 제안서는 영어 문법 학습 LMS 데이터 시각화 및 관리자 기능 고도화 프로젝트를 위해 작성되었습니다.
+    </footer>
+  </div>
+
+  <script>
+    const pages = ['home', 'overview', 'estimate', 'manday', 'prd', 'timeline', 'portfolio'];
+    const pageLabels = {
+      home: '홈', overview: '프로젝트 소개', estimate: '견적서',
+      manday: '공수계산서', prd: 'PRD', timeline: '일정 제안', portfolio: '유사 프로젝트 경험'
+    };
+
+    function navigate(pageId) {
+      if (!pages.includes(pageId)) pageId = 'home';
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('page-' + pageId);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.dataset.page === pageId) {
+          link.className = 'nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700';
+        } else {
+          link.className = 'nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900';
+        }
+      });
+      updatePageNav(pageId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      closeSidebar();
+    }
+
+    function updatePageNav(pageId) {
+      const nav = document.getElementById('page-nav');
+      const idx = pages.indexOf(pageId);
+      const prevBtn = document.getElementById('nav-prev');
+      const nextBtn = document.getElementById('nav-next');
+      const prevLabel = document.getElementById('nav-prev-label');
+      const nextLabel = document.getElementById('nav-next-label');
+      nav.style.display = (pageId === 'home') ? 'none' : 'flex';
+      if (idx > 0) {
+        prevBtn.href = '#' + pages[idx - 1];
+        prevLabel.textContent = pageLabels[pages[idx - 1]];
+        prevBtn.style.visibility = 'visible';
+      } else {
+        prevBtn.style.visibility = 'hidden';
+      }
+      if (idx < pages.length - 1) {
+        nextBtn.href = '#' + pages[idx + 1];
+        nextLabel.textContent = pageLabels[pages[idx + 1]];
+        nextBtn.style.visibility = 'visible';
+      } else {
+        nextBtn.style.visibility = 'hidden';
+      }
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-backdrop').classList.remove('open');
+    }
+
+    function handleHash() {
+      const hash = (location.hash || '#home').replace('#', '');
+      navigate(hash);
+    }
+    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('DOMContentLoaded', handleHash);
+
+    document.getElementById('sidebar-toggle').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-backdrop').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>
